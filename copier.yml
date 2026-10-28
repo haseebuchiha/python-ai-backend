@@ -1,0 +1,17 @@
+_subdirectory: template
+
+project_name:
+  type: str
+  help: Project title, as people read it (for example "Order Tracker")
+  validator: "{% if not project_name.strip() %}Give the project a name{% endif %}"
+
+project_slug:
+  type: str
+  help: Distribution name, in kebab-case
+  default: "{{ project_name | lower | regex_replace('[^a-z0-9]+', '-') | trim('-') }}"
+  validator: "{% if not (project_slug | regex_search('^[a-z][a-z0-9]*(-[a-z0-9]+)*$')) %}Use kebab-case: lowercase letters, digits and single hyphens, starting with a letter{% endif %}"
+
+description:
+  type: str
+  help: One line on what the app does
+  default: A FastAPI backend with LangChain agents and Postgres memory.

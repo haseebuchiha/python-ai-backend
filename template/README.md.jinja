@@ -1,0 +1,28 @@
+# {{ project_name }}
+
+{{ description }}
+
+## Start
+
+```bash
+uv sync
+uv run pre-commit install
+```
+
+`uv sync` installs Python 3.13 if it is missing, creates `.venv` and writes `uv.lock`. Commit `uv.lock`.
+
+## Checks
+
+```bash
+uv run pre-commit run --all-files
+uv run pytest
+```
+
+Pre-commit only checks files git knows about, so `git add` new files first.
+
+## Where things are
+
+- `AGENTS.md` and `.claude/rules/`: how the code is laid out and written
+- `decisions.md`: the setup decisions, the lint rules and this project's own decisions
+
+This project was made from the `python-ai-backend` copier template. Run `uvx copier update` to pull later template changes.

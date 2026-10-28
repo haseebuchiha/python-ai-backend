@@ -1,0 +1,4 @@
+extend = "../../pyproject.toml"
+
+[lint.pylint]
+max-statements = 10

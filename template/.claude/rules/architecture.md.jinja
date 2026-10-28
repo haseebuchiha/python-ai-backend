@@ -1,0 +1,73 @@
+# Architecture
+
+{{ description }} The reasons behind every choice, and everything still undecided, are in `decisions.md`.
+
+## Tools
+
+- Python 3.13, managed by uv: packages, the virtual environment and the Python version
+- FastAPI for the web app, installed as `fastapi[standard]` for the `fastapi` command and uvicorn
+- LangChain's `create_agent` for the agents, with `langchain-openai` for the model. `base_url` points it at any OpenAI-compatible endpoint.
+- LangGraph's Postgres checkpointer and store (`langgraph-checkpoint-postgres`) for conversation memory, sharing one psycopg connection pool (`psycopg-pool`)
+- Pydantic for data coming in from outside, pydantic-settings for settings, and TypedDict for everything inside
+- PostgreSQL, used by LangGraph. We have no tables of our own and no ORM until the project needs them.
+- ruff for linting and formatting, plus our own checker in `lint/`, complexipy, import-linter and mypy (strict), all run by pre-commit
+- loguru for logging
+- pytest for tests, with no plugins for now
+
+## Folders
+
+Each kind of code has one home, the way Rails does it. Folders are split by what the code does, not by feature.
+
+```
+pyproject.toml           packages, and every tool's settings
+uv.lock                  exact package versions
+.pre-commit-config.yaml  the checks that run before each commit
+decisions.md             what we chose and why, and what's still open
+lint/                    our own lint checker and its tests
+tests/                   the app's tests
+app/
+  main.py                creates the FastAPI app and plugs in the routes, nothing else
+  routes/                entry points: HTTP endpoints and webhooks
+  services/              what the app does: every process and every decision, including the agents
+  models/                every read and write of data: outside systems, one file per kind of data, and LangGraph's store
+  schemas/               every class: Pydantic models for outside data, TypedDicts for inside data, agent state, custom errors
+  config/                settings, the logger and the startup lifespan
+```
+
+## How a request flows
+
+1. A request enters the app through a route in `routes/`: an HTTP endpoint or a webhook.
+2. The route calls one service function. That function is the whole process.
+3. The service runs its steps in order. Each step is one of these:
+   - a small helper in the same service file, for a decision that belongs to this process
+   - a model function, for anything that reads or writes data
+   - a function from another service, for work that is reused elsewhere
+4. The result goes back to the route.
+
+Code only calls downward or sideways, never upward:
+
+- Routes call services. They never call models directly.
+- Services hold every decision.
+- Models only read and write data. They make no decisions and never call services.
+- Schemas sit at the bottom. Every layer imports them, and they import nothing of ours.
+- import-linter enforces these rules. A route importing a model fails the checks.
+
+When the app starts, `config/lifespan.py` opens one Postgres connection pool and hands LangGraph's checkpointer and store to every request through `request.state`.
+
+## Writing a service
+
+A service function reads like a list of steps. Each line's output feeds the next line.
+
+```python
+async def book_appointment(booking_request: BookingRequest) -> Booking:
+    customer = await find_customer(booking_request["email"])
+    open_slots = await find_open_slots(booking_request["day"])
+    earliest_slot = pick_earliest_slot(open_slots, booking_request["earliest_time"])
+    return await save_booking(customer, earliest_slot)
+```
+
+`pick_earliest_slot` is a helper in the same file. The other three come from `models/`. This is an illustration, not code that exists yet.
+
+Services are long modules. One service file holds a whole area of work: the few functions other code calls, plus every small helper they use. Keep adding helpers to the same file instead of splitting them into new files, so whoever reads it doesn't have to hop between files.
+
+Get everything you can out of the SDKs first. Before writing something by hand, check whether LangChain, LangGraph, FastAPI or Pydantic already does it, and use that.

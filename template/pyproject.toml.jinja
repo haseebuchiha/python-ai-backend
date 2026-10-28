@@ -1,0 +1,107 @@
+[project]
+name = "{{ project_slug }}"
+version = "0.1.0"
+description = "{{ description | replace('\\', '\\\\') | replace('"', '\\"') }}"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard]>=0.162.0",
+    "langchain>=1.4.7",
+    "langchain-openai>=1.7.3",
+    "langgraph>=1.2.18",
+    "langgraph-checkpoint-postgres>=3.2.0",
+    "loguru>=0.7.3",
+    "psycopg-pool>=3.3.3",
+    "psycopg[binary]>=3.3.6",
+    "pydantic>=2.14.1",
+    "pydantic-settings>=2.16.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "app"
+module-root = ""
+
+[dependency-groups]
+dev = [
+    "complexipy>=8.3.0",
+    "import-linter>=2.15",
+    "inflection>=0.5.1",
+    "mypy>=2.4.0",
+    "pre-commit>=4.7.0",
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+]
+
+[tool.ruff.lint]
+preview = true
+explicit-preview-rules = true
+select = ["ALL"]
+extend-select = ["PLR1702"]
+ignore = ["D", "COM812", "CPY001", "RET505", "RET506"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR0915"]
+"lint/tests/**" = ["S101", "PLR0915"]
+"./conftest.py" = ["S101", "PLR0915"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 3
+
+[tool.ruff.lint.pylint]
+max-args = 3
+max-statements = 8
+max-nested-blocks = 1
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy"]
+disallow_any_explicit = true
+warn_unused_ignores = true
+enable_error_code = ["ignore-without-code"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = false
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.complexipy]
+max-complexity-allowed = 5
+
+[tool.importlinter]
+root_package = "app"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layers: routes, then services, then models, then config, then schemas"
+type = "layers"
+layers = [
+    "app.routes",
+    "app.services",
+    "app.models",
+    "app.config",
+    "app.schemas",
+]
+
+[[tool.importlinter.contracts]]
+name = "Routes never import models directly"
+type = "forbidden"
+source_modules = ["app.routes"]
+forbidden_modules = ["app.models"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Pydantic stays at the edges: services never import it directly"
+type = "forbidden"
+source_modules = ["app.services"]
+forbidden_modules = ["pydantic", "pydantic_core", "pydantic_settings"]
+allow_indirect_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "lint"]

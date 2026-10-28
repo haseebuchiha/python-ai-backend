@@ -1,0 +1,41 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix --ignore-noqa
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+      - id: custom-lint
+        name: custom lint rules
+        entry: uv run python -m lint
+        language: system
+        types: [python]
+      - id: ruff-config
+        name: nested ruff configs only raise the statement limit
+        entry: uv run python -m lint.configs
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: complexipy
+        name: cognitive complexity
+        entry: uv run complexipy
+        language: system
+        types: [python]
+      - id: import-linter
+        name: layer imports
+        entry: uv run lint-imports
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: mypy
+        name: mypy
+        entry: uv run mypy app lint
+        language: system
+        types: [python]
+        pass_filenames: false
