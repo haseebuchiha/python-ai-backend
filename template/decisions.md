@@ -5,6 +5,7 @@ What we chose and why, and what's still open.
 ## Setup decisions
 
 - **Python 3.13 with uv** for packages, the virtual environment and the Python version, so one tool sets up the whole environment and `uv.lock` pins exact versions.
+- **Dev tools pinned to exact versions** (ruff, mypy, pytest, pre-commit, complexipy, import-linter, inflection). ruff runs with every rule on, so a newer release could add rules and fail a fresh project on day one. Bump them on purpose.
 - **FastAPI**, installed as `fastapi[standard]`, because that brings the `fastapi` command and uvicorn with it.
 - **Folders:** everything lives in `app/`, FastAPI's own convention, so imports read `from app.services import ...`. Inside it, folders are split by what the code does, not by feature, so each kind of code has one home: `routes/`, `services/`, `models/`, `schemas/` and `config/`. `main.py` only creates the app and plugs in the routes.
 - **Layers:** routes → services → models → config → schemas, and nothing imports upward, so every decision ends up in services and every read or write of data in models. import-linter enforces it, so the layout can't drift.
